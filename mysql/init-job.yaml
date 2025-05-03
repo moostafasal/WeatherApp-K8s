@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-init-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: mysql-init
+        image: mysql:5.7
+        command:
+        - /bin/sh
+        - -c
+        - |
+          mysql -h mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "
+          CREATE USER IF NOT EXISTS 'authuser'@'%' IDENTIFIED BY 'my-secret-pw';
+          GRANT ALL PRIVILEGES ON weatherapp.* TO 'authuser'@'%';
+          CREATE DATABASE IF NOT EXISTS weatherapp;
+          USE weatherapp;
+          CREATE TABLE IF NOT EXISTS users (
+              user_id INT AUTO_INCREMENT PRIMARY KEY,
+              user_name VARCHAR(255) NOT NULL UNIQUE,
+              user_password VARCHAR(255) NOT NULL,
+              CHECK (user_name <> '')
+          );"
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: root-password
+      restartPolicy: Never
